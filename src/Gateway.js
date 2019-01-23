@@ -115,6 +115,16 @@ class Gateway {
       score: 1,
     });
   }
+
+  async getAnswersByKeywords(words) {
+    return this.db
+      .select('answers.id', 'answers.content', this.db.raw('SUM(answer_keyword.score)'))
+      .from('answers')
+      .innerJoin('answer_keyword', 'answers.id', 'answer_keyword.answer_id')
+      .innerJoin('keywords', 'keywords.id', 'answer_keyword.keyword_id')
+      .whereIn('keywords.word', words)
+      .groupBy('answers.id');
+  }
 }
 
 module.exports = Gateway;

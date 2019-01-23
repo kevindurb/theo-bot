@@ -54,6 +54,9 @@ class Theo extends EventEmitter {
 
   async handleQuestion(message) {
     // TODO: look to see if i should answer it, then answer it
+    const terms = message.terms.out('array');
+    const answers = await this.gateway.getAnswersByKeywords(terms);
+    console.log(answers);
     this.handleResponse(message, 'Sorry i dont know how to answer that yet!');
   }
 

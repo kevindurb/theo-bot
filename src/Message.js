@@ -5,7 +5,7 @@ class Message {
     this.text = text || '';
     this.to = to || '';
     this.from = from || '';
-    this.data = nlp(text);
+    this.data = nlp(text).normalize();
   }
 
   get isQuestion() {
@@ -14,6 +14,14 @@ class Message {
 
   get questions() {
     return this.data.sentences().isQuestion();
+  }
+
+  get topics() {
+    return this.data.topics();
+  }
+
+  get terms() {
+    return this.data.terms();
   }
 
   includes(fragment) {
