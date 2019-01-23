@@ -8,8 +8,24 @@ class Message {
     this.data = nlp(text);
   }
 
+  get isQuestion() {
+    return !!this.questions.length;
+  }
+
   get questions() {
     return this.data.sentences().isQuestion();
+  }
+
+  includes(fragment) {
+    return this.text.includes(fragment);
+  }
+
+  test(regex) {
+    return regex.test(this.text);
+  }
+
+  match(regex) {
+    return this.text.match(regex);
   }
 }
 
