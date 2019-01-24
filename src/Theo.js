@@ -15,6 +15,7 @@ const ADD_KEYWORD_TO_ANSWER = /^theo config add keyword: (\w+) to answer: (\d+)$
 class Theo extends EventEmitter {
   constructor(env) {
     super();
+    this.id = env.THEO_ID;
     this.db = dbFactory(env.DATABASE_URL);
     this.gateway = new Gateway(this.db);
     this.config = new Config(this.db);
@@ -64,6 +65,8 @@ class Theo extends EventEmitter {
     const answer = await this.gateway.getAnswerByKeywords(terms);
     if (answer && answer.scoreSum >= MIN_ANSWER_SCORE) {
       this.handleResponse(message, answer.content);
+    } else if (message.includes(`<@${this.id}>`)) {
+      this.handleResponse(message, `Sorry I dont know the answer to that yet.`);
     }
   }
 
