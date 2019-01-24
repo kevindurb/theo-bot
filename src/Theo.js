@@ -1,9 +1,13 @@
 const EventEmitter = require('events');
 const Message = require('./Message');
 const Gateway = require('./Gateway');
+const Config = require('./Config');
 const dbFactory = require('./db');
 
+const MIN_ANSWER_SCORE = 2;
+
 const ADD_ANSWER = /^theo config add answer: (.+)$/;
+const REMOVE_ANSWER = /^theo config remove answer: (\d+)$/;
 const LIST_ANSWERS = /^theo config list answers$/;
 const LIST_KEYWORDS_FOR_ANSWER = /^theo config list keywords for answer: (\d+)$/;
 const ADD_KEYWORD_TO_ANSWER = /^theo config add keyword: (\w+) to answer: (\d+)$/;
@@ -13,6 +17,7 @@ class Theo extends EventEmitter {
     super();
     this.db = dbFactory(env.DATABASE_URL);
     this.gateway = new Gateway(this.db);
+    this.config = new Config(this.db);
 
     this.init = this.init.bind(this);
 
@@ -28,6 +33,8 @@ class Theo extends EventEmitter {
   handleMessage(message) {
     if (message.test(ADD_ANSWER)) {
       this.addAnswer(message);
+    } else if (message.test(REMOVE_ANSWER)) {
+      this.removeAnswer(message);
     } else if (message.test(LIST_ANSWERS)) {
       this.listAnswers(message);
     } else if (message.test(ADD_KEYWORD_TO_ANSWER)) {
@@ -53,11 +60,11 @@ class Theo extends EventEmitter {
   }
 
   async handleQuestion(message) {
-    // TODO: look to see if i should answer it, then answer it
     const terms = message.terms.out('array');
-    const answers = await this.gateway.getAnswersByKeywords(terms);
-    console.log(answers);
-    this.handleResponse(message, 'Sorry i dont know how to answer that yet!');
+    const answer = await this.gateway.getAnswerByKeywords(terms);
+    if (answer && answer.scoreSum >= MIN_ANSWER_SCORE) {
+      this.handleResponse(message, answer.content);
+    }
   }
 
   async addAnswer(message) {
@@ -66,6 +73,14 @@ class Theo extends EventEmitter {
     await this.gateway.addAnswer(answer);
 
     this.handleResponse(message, `Added answer: ${answer}`);
+  }
+
+  async removeAnswer(message) {
+    const result = message.match(REMOVE_ANSWER);
+    const answerId = result[1];
+    await this.gateway.removeAnswer(answerId);
+
+    this.handleResponse(message, `Removed answer: ${answerId}`);
   }
 
   async addKeywordToAnswer(message) {

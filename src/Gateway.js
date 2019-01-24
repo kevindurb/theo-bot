@@ -11,8 +11,8 @@ class Gateway {
     if (await db.schema.hasTable('keywords')) {
       await db.schema.dropTable('keywords');
     }
-    if (await db.schema.hasTable('answer_keyword')) {
-      await db.schema.dropTable('answer_keyword');
+    if (await db.schema.hasTable('answerKeyword')) {
+      await db.schema.dropTable('answerKeyword');
     }
   }
 
@@ -39,9 +39,9 @@ class Gateway {
     }
 
     if (! await db.schema.hasTable('answer_keyword')) {
-      await db.schema.createTable('answer_keyword', (table) => {
-        table.integer('answer_id');
-        table.integer('keyword_id');
+      await db.schema.createTable('answerKeyword', (table) => {
+        table.integer('answerId');
+        table.integer('keywordId');
         table.integer('score');
         table.timestamps();
       });
@@ -59,6 +59,15 @@ class Gateway {
     return this.db('answers').insert({
       content,
     });
+  }
+
+  async removeAnswer(id) {
+    await this.db('answers')
+      .where('id', id)
+      .del();
+    await this.db('answerKeyword')
+      .where('answerId', id)
+      .del();
   }
 
   getAnswerById(id) {
@@ -87,8 +96,8 @@ class Gateway {
     return this.db
       .select()
       .from('keywords')
-      .innerJoin('answer_keyword', 'answer_keyword.keyword_id', 'keywords.id')
-      .where('answer_id', answerId);
+      .innerJoin('answerKeyword', 'answerKeyword.keywordId', 'keywords.id')
+      .where('answerId', answerId);
   }
 
   addKeyword(word) {
@@ -109,21 +118,24 @@ class Gateway {
       keywordId = await this.addKeyword(keyword);
     }
 
-    return this.db('answer_keyword').insert({
-      answer_id: parseInt(answer.id, 10),
-      keyword_id: parseInt(keywordId, 10),
+    return this.db('answerKeyword').insert({
+      answerId: parseInt(answer.id, 10),
+      keywordId: parseInt(keywordId, 10),
       score: 1,
     });
   }
 
-  async getAnswersByKeywords(words) {
+  async getAnswerByKeywords(words) {
     return this.db
-      .select('answers.id', 'answers.content', this.db.raw('SUM(answer_keyword.score)'))
+      .select('answers.id', 'answers.content', this.db.raw('SUM(answer_keyword.score) as score_sum'))
       .from('answers')
-      .innerJoin('answer_keyword', 'answers.id', 'answer_keyword.answer_id')
-      .innerJoin('keywords', 'keywords.id', 'answer_keyword.keyword_id')
+      .innerJoin('answerKeyword', 'answers.id', 'answerKeyword.answerId')
+      .innerJoin('keywords', 'keywords.id', 'answerKeyword.keywordId')
       .whereIn('keywords.word', words)
-      .groupBy('answers.id');
+      .groupBy('answers.id')
+      .orderBy('scoreSum', 'desc')
+      .limit(1)
+      .then(this.first);
   }
 }
 
