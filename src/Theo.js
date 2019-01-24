@@ -7,17 +7,17 @@ const DadJokes = require('dadjokes-wrapper');
 
 const MIN_ANSWER_SCORE = 2;
 
-const JOKE = /tell me a joke/;
-const ADD_ANSWER = /^theo config add answer: (.+)$/;
-const REMOVE_ANSWER = /^theo config remove answer: (\d+)$/;
-const LIST_ANSWERS = /^theo config list answers$/;
-const LIST_KEYWORDS_FOR_ANSWER = /^theo config list keywords for answer: (\d+)$/;
-const ADD_KEYWORD_TO_ANSWER = /^theo config add keyword: (\w+) to answer: (\d+)$/;
+const JOKE = /tell me a joke/i;
+const ADD_ANSWER = /^theo config add answer: (.+)$/i;
+const REMOVE_ANSWER = /^theo config remove answer: (\d+)$/i;
+const LIST_ANSWERS = /^theo config list answers$/i;
+const LIST_KEYWORDS_FOR_ANSWER = /^theo config list keywords for answer: (\d+)$/i;
+const ADD_KEYWORD_TO_ANSWER = /^theo config add keyword: (\w+) to answer: (\d+)$/i;
 
 class Theo extends EventEmitter {
   constructor(env) {
     super();
-    this.id = env.THEO_ID;
+    this.id = null;
     this.db = dbFactory(env.DATABASE_URL);
     this.gateway = new Gateway(this.db);
     this.config = new Config(this.db);
@@ -32,6 +32,10 @@ class Theo extends EventEmitter {
     this.on(Theo.RECEIVED_MESSAGE, this.handleMessage.bind(this));
 
     this.emit(Theo.READY);
+  }
+
+  setId(id) {
+    this.id = id;
   }
 
   handleMessage(message) {
@@ -68,6 +72,7 @@ class Theo extends EventEmitter {
   async handleQuestion(message) {
     const terms = message.terms.out('array');
     const answer = await this.gateway.getAnswerByKeywords(terms);
+    console.log(message.to, message.from);
     if (answer && answer.scoreSum >= MIN_ANSWER_SCORE) {
       this.handleResponse(message, answer.content);
     } else if (message.includes(`<@${this.id}>`)) {
@@ -77,6 +82,7 @@ class Theo extends EventEmitter {
 
   async handleJoke(message) {
     const joke = await this.dj.randomJoke();
+    console.log(`JOKE: ${joke}`);
     this.handleResponse(message, joke);
   }
 

@@ -3,13 +3,16 @@ const http = require('http');
 const { RTMClient } = require('@slack/client');
 const Message = require('./src/Message');
 const Theo = require('./src/Theo');
+
 const theo = new Theo(process.env);
 
 theo.on(Theo.READY, () => {
   const rtm = new RTMClient(process.env.SLACK_TOKEN);
-  rtm.start();
+  rtm.start()
+    .then(() => theo.setId(rtm.activeUserId));
 
   rtm.on('message', (event) => {
+    console.log(event);
     const message = new Message(
       event.text,
       event.channel,
