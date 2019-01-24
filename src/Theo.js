@@ -3,9 +3,11 @@ const Message = require('./Message');
 const Gateway = require('./Gateway');
 const Config = require('./Config');
 const dbFactory = require('./db');
+const DadJokes = require('dadjokes-wrapper');
 
 const MIN_ANSWER_SCORE = 2;
 
+const JOKE = /tell me a joke/;
 const ADD_ANSWER = /^theo config add answer: (.+)$/;
 const REMOVE_ANSWER = /^theo config remove answer: (\d+)$/;
 const LIST_ANSWERS = /^theo config list answers$/;
@@ -19,6 +21,7 @@ class Theo extends EventEmitter {
     this.db = dbFactory(env.DATABASE_URL);
     this.gateway = new Gateway(this.db);
     this.config = new Config(this.db);
+    this.dj = new DadJokes();
 
     this.init = this.init.bind(this);
 
@@ -42,6 +45,8 @@ class Theo extends EventEmitter {
       this.addKeywordToAnswer(message);
     } else if (message.test(LIST_KEYWORDS_FOR_ANSWER)) {
       this.listKeywordsForAnswer(message);
+    } else if (message.test(JOKE)) {
+      this.handleJoke(message);
     } else if (message.isQuestion) {
       this.handleQuestion(message);
     }
@@ -68,6 +73,11 @@ class Theo extends EventEmitter {
     } else if (message.includes(`<@${this.id}>`)) {
       this.handleResponse(message, `Sorry I dont know the answer to that yet.`);
     }
+  }
+
+  async handleJoke(message) {
+    const joke = await this.dj.randomJoke();
+    this.handleResponse(message, joke);
   }
 
   async addAnswer(message) {
